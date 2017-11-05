@@ -5,11 +5,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.Text;
+using System.Net.Http.Headers;
 
-namespace gestione_materie.Controllers
+namespace SuperCoolApp.Controllers
 {
     [Route("api/")]
-    public class StudentController : Controller
+    public class PassThroughApiController : Controller
     {
         private const string baseAddress = "http://localhost:5000/api/";
         static HttpClient http = new HttpClient(new HttpClientHandler { UseCookies = false, });
@@ -58,7 +61,6 @@ namespace gestione_materie.Controllers
         {
             try
             {
-                //var serviceApiUri = new Uri(baseAddress);
 
                 string path = Request.Path.Value.Replace("/api/", "");
                 string pathAndQuery = path + Request.QueryString;
@@ -67,15 +69,37 @@ namespace gestione_materie.Controllers
 
                 HttpRequestMessage request = new HttpRequestMessage(method, uri);
 
+                //copy original body
+                if (method == HttpMethod.Put || method == HttpMethod.Post)
+                {
+                    using (Stream receiveStream = Request.Body)
+                    {
+                        string documentContents;
+                        using (StreamReader readStream = new StreamReader(receiveStream, Encoding.UTF8))
+                        {
+                            documentContents = readStream.ReadToEnd();
+                        }
+                        request.Content = new StringContent(documentContents);
+                    }
+                }
+
                 //copy original headers
                 foreach (var header in Request.Headers)
                 {
-                    request.Headers.Add(header.Key, header.Value.ToArray());
-                }
+                    if (header.Key != "Content-Type" && header.Key != "Content-Length")
+                    {
+                        request.Headers.Add(header.Key, header.Value.ToArray());
+                    }
+                    else
+                    {
+                        if (header.Key == "Content-Type")
+                            request.Content.Headers.ContentType = new MediaTypeHeaderValue(header.Value);
+                        if (header.Key == "Content-Length")
+                            request.Content.Headers.Add(header.Key, header.Value.ToArray());
+                    }
 
-                //copy content
-                //if (method == HttpMethod.Put || method == HttpMethod.Post)
-                //  request.Content = Request.Body;
+
+                }
 
                 var httpResponse = await http.SendAsync(request);
                 if (httpResponse.IsSuccessStatusCode)
@@ -91,6 +115,7 @@ namespace gestione_materie.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 return StatusCode(StatusCodes.Status500InternalServerError, ex);
             }
         }

@@ -6,27 +6,29 @@ import { Http } from "@angular/http";
 
 @Component({
     selector: 'students',
-    templateUrl: './students.component.html'
+    templateUrl: './students.component.html',
+    styleUrls: ['./students.component.css']
 })
-export class StudentComponent implements OnInit {
-    ngOnInit(): void {
-        throw new Error("Method not implemented.");
-    }
-
+export class StudentComponent  {
+    
+    
+   
+    router: Router;
     students: Student[];
     selectedStudent: Student;
 
     onSelect(student: Student): void {
         this.selectedStudent = student;
+       
     }
 
     constructor(http: Http, @Inject('BASE_URL') baseUrl: string) {
         http.get(baseUrl + 'api/students').subscribe(result => {
             this.students = result.json() as Student[];
+            this.students.forEach
+            console.log(result);
         }, error => console.error(error));
     }
-    gotoDetail(): void {
-        /*   this.router.navigate(['/detail', this.selectedStudent.id]);*/
-    }
+    
 
 }
